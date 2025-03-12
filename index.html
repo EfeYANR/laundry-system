@@ -59,52 +59,106 @@
         <button onclick="exportLogs()">Dışa Aktar (CSV)</button>
       </div>
       <div id="log-list">Yükleniyor...</div>
+      <hr>
+      <h4>Hash Şifresini Değiştir</h4>
+      <input type="text" id="new-hash" placeholder="Yeni Hash Kodu">
+      <button onclick="updateHash()">Hash Güncelle</button>
     </div>
   </div>
-  <div class="footer">&copy; 2024 LaundryWatch. Version 2.9</div>
+  <div class="footer">&copy; 2024 LaundryWatch. Version 3.0</div>
 
   <script>
-    const firebaseConfig = { /* aynı firebase yapılandırması */ };
+    const firebaseConfig = { apiKey:"", authDomain:"", databaseURL:"", projectId:"", storageBucket:"", messagingSenderId:"", appId:"" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let allLogs = [];
 
+    let studentId = prompt("Lütfen öğrenci numaranızı giriniz:");
+    let studentPass = prompt("Lütfen öğrenci şifrenizi giriniz:");
+    let studentHash = prompt("Lütfen sistem giriş hash kodunu giriniz:");
+
+    const studentPasswordList = { "12345678": "sifre123", "23456789": "abc456" };
+
+    db.ref("settings/access_hash").once("value", snapshot => {
+      const currentHash = snapshot.val();
+      if (!(studentId in studentPasswordList) || studentPasswordList[studentId] !== studentPass || studentHash !== currentHash) {
+        alert("Giriş bilgilerinizden biri hatalı. Sayfa kapatılıyor.");
+        document.body.innerHTML = "<h3 style='text-align:center;'>Yetkisiz erişim. Sayfa kapatıldı.</h3>";
+        throw new Error("Yetkisiz giriş");
+      }
+    });
+
+    let userIP = "";
+    fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => userIP = data.ip);
+
+    function renderMachines(snapshot) {
+      const machines = snapshot.val();
+      const list = document.getElementById("machine-list");
+      list.innerHTML = "";
+      for (let key in machines) {
+        const m = machines[key];
+        let statusText = m.status.replace("_", " ");
+        list.innerHTML += `<div class='card ${m.status}'><h3>${key}</h3><div class='status'>Status: ${statusText}</div></div>`;
+      }
+      document.getElementById("timestamp").textContent = new Date().toLocaleTimeString();
+    }
+    db.ref("machines").on("value", renderMachines);
+
+    function toggleMachineStatus(machineId) {
+      const ref = db.ref("machines/" + machineId + "/status");
+      ref.once("value").then(snapshot => {
+        const current = snapshot.val();
+        const newStatus = current === "available" ? "in_use" : "available";
+        ref.set(newStatus);
+        db.ref("logs").push({ machine: machineId, action: newStatus, student: studentId, ip: userIP, time: new Date().toISOString() });
+      });
+    }
+
+    let allLogs = [];
     function renderLogs(snapshot) {
       const logs = snapshot.val();
       const logList = document.getElementById("log-list");
       logList.innerHTML = "";
       allLogs = Object.entries(logs || {}).reverse().slice(0, 100);
-
       const studentFilter = document.getElementById("filter-student").value.trim();
       const machineFilter = document.getElementById("filter-machine").value.trim();
-
-      const filtered = allLogs.filter(([key, log]) => {
-        return (!studentFilter || (log.student && log.student.includes(studentFilter))) &&
-               (!machineFilter || (log.machine && log.machine.includes(machineFilter)));
-      });
-
+      const filtered = allLogs.filter(([key, log]) => (!studentFilter || (log.student && log.student.includes(studentFilter))) && (!machineFilter || (log.machine && log.machine.includes(machineFilter))));
       filtered.forEach(([key, log]) => {
-        logList.innerHTML += `<div class='log-entry'><b>${log.machine}</b> → ${log.action} (${new Date(log.time).toLocaleString()})<br/>Öğrenci No: ${log.student || 'Bilinmiyor'}<br/>IP: ${log.ip || 'Bilinmiyor'}</div>`;
+        logList.innerHTML += `<div class='log-entry'><b>${log.machine}</b> → ${log.action} (${new Date(log.time).toLocaleString()})<br/>Öğrenci No: ${log.student}<br/>IP: ${log.ip}</div>`;
       });
     }
-
     function exportLogs() {
       let csv = "Makine,İşlem,Öğrenci No,IP,Tarih\n";
-      allLogs.forEach(([key, log]) => {
-        csv += `${log.machine},${log.action},${log.student},${log.ip},${new Date(log.time).toLocaleString()}\n`;
-      });
+      allLogs.forEach(([key, log]) => { csv += `${log.machine},${log.action},${log.student},${log.ip},${new Date(log.time).toLocaleString()}\n`; });
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = "log-kayitlari.csv";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      a.href = url; a.download = "log-kayitlari.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
-
     document.getElementById("filter-student").addEventListener("input", () => renderLogs({ val: () => Object.fromEntries(allLogs) }));
     document.getElementById("filter-machine").addEventListener("input", () => renderLogs({ val: () => Object.fromEntries(allLogs) }));
+
+    function updateHash() {
+      const newHash = document.getElementById("new-hash").value.trim();
+      if (newHash.length > 0) {
+        db.ref("settings/access_hash").set(newHash);
+        alert("Hash kodu güncellendi.");
+      }
+    }
+    function checkAdminPassword() {
+      const password = document.getElementById("admin-password").value;
+      if (password === "admin123") {
+        document.getElementById("admin-panel").style.display = "block";
+        document.getElementById("admin-login").style.display = "none";
+        db.ref("logs").on("value", renderLogs);
+      } else { alert("Hatalı şifre!"); }
+    }
+    function onScanSuccess(decodedText, decodedResult) {
+      toggleMachineStatus(decodedText);
+      html5QrcodeScanner.clear();
+      document.getElementById("reader").innerHTML = "<p>QR başarıyla okundu. Sayfayı kapatabilirsiniz.</p>";
+    }
+    const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+    html5QrcodeScanner.render(onScanSuccess);
   </script>
 </body>
 </html>
