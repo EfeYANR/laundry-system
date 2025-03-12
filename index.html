@@ -2,11 +2,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LaundryWatch</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <!-- Firebase Classic SDK (v8) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <style>
@@ -35,7 +34,6 @@
   <div class="footer">&copy; 2024 LaundryWatch. All rights reserved.</div>
 
   <script>
-    // Firebase config (senin bilgilerinle güncel)
     const firebaseConfig = {
       apiKey: "AIzaSyDylInzc9Q1_V1NqZTt8fyLGeqOnwMT7tU",
       authDomain: "laundry-a846e.firebaseapp.com",
@@ -47,7 +45,6 @@
       measurementId: "G-XQEHWE0D5V"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -83,6 +80,8 @@
 
     function onScanSuccess(decodedText, decodedResult) {
       toggleMachineStatus(decodedText);
+      html5QrcodeScanner.clear(); // Kamera tarayıcıyı kapatır
+      document.getElementById("reader").innerHTML = "<p>QR scanned successfully. You may close this page.</p>";
     }
 
     const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
