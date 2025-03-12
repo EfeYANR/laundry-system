@@ -39,7 +39,7 @@
     <div id="reader"></div>
     <div class="grid" id="machine-list"></div>
   </div>
-  <div class="footer">&copy; 2024 LaundryWatch. Version 2.2</div>
+  <div class="footer">&copy; 2024 LaundryWatch. Version 2.3</div>
 
   <script>
     const firebaseConfig = {
@@ -83,12 +83,19 @@
         const current = snapshot.val();
         const newStatus = current === "available" ? "in_use" : "available";
         ref.set(newStatus);
+
+        // LOG KAYDI
+        db.ref("logs").push({
+          machine: machineId,
+          action: newStatus,
+          time: new Date().toISOString()
+        });
       });
     }
 
     function onScanSuccess(decodedText, decodedResult) {
       toggleMachineStatus(decodedText);
-      html5QrcodeScanner.clear(); // Kamera tarayıcıyı kapatır
+      html5QrcodeScanner.clear();
       document.getElementById("reader").innerHTML = "<p>QR başarıyla okundu. Sayfayı kapatabilirsiniz.</p>";
     }
 
@@ -97,3 +104,4 @@
   </script>
 </body>
 </html>
+
