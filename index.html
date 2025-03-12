@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LaundryWatch</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <!-- Firebase Classic SDK (v8) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f8f9fa; }
+    header { padding: 1rem 2rem; background-color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .container { padding: 2rem; max-width: 1200px; margin: auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .card { border-radius: 12px; padding: 1rem; box-shadow: 0 0 10px rgba(0,0,0,0.1); position: relative; color: white; }
+    .available { background-color: #28a745; }
+    .in_use { background-color: #dc3545; }
+    .out_of_order { background-color: #ffc107; color: black; }
+    .status { font-weight: bold; margin-top: 0.5rem; }
+    .footer { text-align: center; margin-top: 2rem; color: #666; font-size: 14px; }
+    #reader { margin: 2rem auto; max-width: 400px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h2>LaundryWatch</h2>
+    <div>Last updated: <span id="timestamp"></span></div>
+  </header>
+  <div class="container">
+    <div id="reader"></div>
+    <div class="grid" id="machine-list"></div>
+  </div>
+  <div class="footer">&copy; 2024 LaundryWatch. All rights reserved.</div>
+
+  <script>
+    // Firebase config (senin bilgilerinle güncel)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDylInzc9Q1_V1NqZTt8fyLGeqOnwMT7tU",
+      authDomain: "laundry-a846e.firebaseapp.com",
+      databaseURL: "https://laundry-a846e-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "laundry-a846e",
+      storageBucket: "laundry-a846e.appspot.com",
+      messagingSenderId: "49043361685",
+      appId: "1:49043361685:web:d4d98f53d8fb51fd3f69c",
+      measurementId: "G-XQEHWE0D5V"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function renderMachines(snapshot) {
+      const machines = snapshot.val();
+      const list = document.getElementById("machine-list");
+      list.innerHTML = "";
+
+      for (let key in machines) {
+        const m = machines[key];
+        let statusText = m.status.replace("_", " ");
+        let card = `
+          <div class="card ${m.status}">
+            <h3>${key}</h3>
+            <div class="status">Status: ${statusText}</div>
+          </div>
+        `;
+        list.innerHTML += card;
+      }
+      document.getElementById("timestamp").textContent = new Date().toLocaleTimeString();
+    }
+
+    db.ref("machines").on("value", renderMachines);
+
+    function toggleMachineStatus(machineId) {
+      const ref = db.ref("machines/" + machineId + "/status");
+      ref.once("value").then(snapshot => {
+        const current = snapshot.val();
+        const newStatus = current === "available" ? "in_use" : "available";
+        ref.set(newStatus);
+      });
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+      toggleMachineStatus(decodedText);
+    }
+
+    const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+    html5QrcodeScanner.render(onScanSuccess);
+  </script>
+</body>
+</html>
