@@ -53,7 +53,7 @@
       <div id="log-list">Yükleniyor...</div>
     </div>
   </div>
-  <div class="footer">&copy; 2024 LaundryWatch. Version 2.5</div>
+  <div class="footer">&copy; 2024 LaundryWatch. Version 2.7</div>
 
   <script>
     const firebaseConfig = {
@@ -69,6 +69,12 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
+    let studentId = prompt("Lütfen öğrenci numaranızı giriniz:");
+    let userIP = "";
+    fetch('https://api.ipify.org?format=json')
+      .then(response => response.json())
+      .then(data => userIP = data.ip);
 
     function renderMachines(snapshot) {
       const machines = snapshot.val();
@@ -98,16 +104,13 @@
         const newStatus = current === "available" ? "in_use" : "available";
         ref.set(newStatus);
 
-        fetch('https://api.ipify.org?format=json')
-          .then(response => response.json())
-          .then(data => {
-            db.ref("logs").push({
-              machine: machineId,
-              action: newStatus,
-              ip: data.ip,
-              time: new Date().toISOString()
-            });
-          });
+        db.ref("logs").push({
+          machine: machineId,
+          action: newStatus,
+          student: studentId || "Bilinmiyor",
+          ip: userIP || "Bilinmiyor",
+          time: new Date().toISOString()
+        });
       });
     }
 
@@ -117,7 +120,7 @@
       logList.innerHTML = "";
       const entries = Object.entries(logs || {}).reverse().slice(0, 20);
       entries.forEach(([key, log]) => {
-        logList.innerHTML += `<div class='log-entry'><b>${log.machine}</b> → ${log.action} (${new Date(log.time).toLocaleString()}) <br/>IP: ${log.ip || 'Yok'}</div>`;
+        logList.innerHTML += `<div class='log-entry'><b>${log.machine}</b> → ${log.action} (${new Date(log.time).toLocaleString()})<br/>Öğrenci No: ${log.student || 'Bilinmiyor'}<br/>IP: ${log.ip || 'Bilinmiyor'}</div>`;
       });
     }
 
