@@ -1,9 +1,9 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LaundryWatch</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -20,7 +20,7 @@
 </head>
 <body>
   <h2>LaundryWatch</h2>
-  <div class="notice">Lütfen öğrenci numarası, şifre ve hash kodu ile giriş yapın.</div>
+  <div class="notice">📌 Lütfen giriş yapmak için öğrenci numaranızı ve şifrenizi giriniz.</div>
   <div id="reader"></div>
   <div class="grid" id="machine-list"></div>
 
@@ -92,17 +92,14 @@
     function login() {
       const no = prompt("Öğrenci Numaranız:");
       const sifre = prompt("Şifreniz:");
-      firebase.database().ref("settings/access_hash").once("value").then(snapshot => {
-        const correctHash = snapshot.val();
-        const girilenHash = prompt("Hash kodunu girin:");
-        if (studentPasswordList[no] === sifre && girilenHash === correctHash) {
-          currentStudentNo = no;
-          alert("Giriş başarılı!");
-          startApp();
-        } else {
-          alert("Giriş başarısız. Bilgileri kontrol edin.");
-        }
-      });
+
+      if (studentPasswordList[no] === sifre) {
+        currentStudentNo = no;
+        alert("Giriş başarılı!");
+        startApp();
+      } else {
+        alert("Giriş başarısız. Bilgilerinizi kontrol edin.");
+      }
     }
 
     login();
