@@ -23,6 +23,8 @@
     .footer { text-align: center; margin-top: 2rem; color: #666; font-size: 14px; }
     #reader { margin: 2rem auto; max-width: 400px; }
     .notice { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 1rem; margin: 1rem auto; max-width: 500px; border-radius: 8px; text-align: center; }
+    .log-panel { background: #ffffff; padding: 1rem; margin-top: 2rem; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .log-entry { padding: 0.5rem 0; border-bottom: 1px solid #ddd; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -38,8 +40,12 @@
     </div>
     <div id="reader"></div>
     <div class="grid" id="machine-list"></div>
+    <div class="log-panel">
+      <h3>İşlem Geçmişi (Log Kayıtları)</h3>
+      <div id="log-list">Yükleniyor...</div>
+    </div>
   </div>
-  <div class="footer">&copy; 2024 LaundryWatch. Version 2.3</div>
+  <div class="footer">&copy; 2024 LaundryWatch. Version 2.4</div>
 
   <script>
     const firebaseConfig = {
@@ -93,6 +99,18 @@
       });
     }
 
+    function renderLogs(snapshot) {
+      const logs = snapshot.val();
+      const logList = document.getElementById("log-list");
+      logList.innerHTML = "";
+      const entries = Object.entries(logs || {}).reverse().slice(0, 10);
+      entries.forEach(([key, log]) => {
+        logList.innerHTML += `<div class='log-entry'><b>${log.machine}</b> → ${log.action} (${new Date(log.time).toLocaleString()})</div>`;
+      });
+    }
+
+    db.ref("logs").on("value", renderLogs);
+
     function onScanSuccess(decodedText, decodedResult) {
       toggleMachineStatus(decodedText);
       html5QrcodeScanner.clear();
@@ -104,4 +122,3 @@
   </script>
 </body>
 </html>
-
