@@ -23,8 +23,10 @@
     .footer { text-align: center; margin-top: 2rem; color: #666; font-size: 14px; }
     #reader { margin: 2rem auto; max-width: 400px; }
     .notice { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 1rem; margin: 1rem auto; max-width: 500px; border-radius: 8px; text-align: center; }
-    .log-panel { background: #ffffff; padding: 1rem; margin-top: 2rem; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .log-panel { background: #ffffff; padding: 1rem; margin-top: 2rem; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: none; }
     .log-entry { padding: 0.5rem 0; border-bottom: 1px solid #ddd; font-size: 14px; }
+    #admin-login { text-align: center; margin-top: 2rem; }
+    #admin-panel { display: none; }
   </style>
 </head>
 <body>
@@ -40,12 +42,18 @@
     </div>
     <div id="reader"></div>
     <div class="grid" id="machine-list"></div>
-    <div class="log-panel">
-      <h3>İşlem Geçmişi (Log Kayıtları)</h3>
+
+    <div id="admin-login">
+      <input type="password" id="admin-password" placeholder="Yönetici Şifresi" />
+      <button onclick="checkAdminPassword()">Giriş Yap</button>
+    </div>
+
+    <div id="admin-panel" class="log-panel">
+      <h3>İşlem Geçmişi (Yönetici Paneli)</h3>
       <div id="log-list">Yükleniyor...</div>
     </div>
   </div>
-  <div class="footer">&copy; 2024 LaundryWatch. Version 2.4</div>
+  <div class="footer">&copy; 2024 LaundryWatch. Version 2.5</div>
 
   <script>
     const firebaseConfig = {
@@ -90,12 +98,16 @@
         const newStatus = current === "available" ? "in_use" : "available";
         ref.set(newStatus);
 
-        // LOG KAYDI
-        db.ref("logs").push({
-          machine: machineId,
-          action: newStatus,
-          time: new Date().toISOString()
-        });
+        fetch('https://api.ipify.org?format=json')
+          .then(response => response.json())
+          .then(data => {
+            db.ref("logs").push({
+              machine: machineId,
+              action: newStatus,
+              ip: data.ip,
+              time: new Date().toISOString()
+            });
+          });
       });
     }
 
@@ -103,13 +115,22 @@
       const logs = snapshot.val();
       const logList = document.getElementById("log-list");
       logList.innerHTML = "";
-      const entries = Object.entries(logs || {}).reverse().slice(0, 10);
+      const entries = Object.entries(logs || {}).reverse().slice(0, 20);
       entries.forEach(([key, log]) => {
-        logList.innerHTML += `<div class='log-entry'><b>${log.machine}</b> → ${log.action} (${new Date(log.time).toLocaleString()})</div>`;
+        logList.innerHTML += `<div class='log-entry'><b>${log.machine}</b> → ${log.action} (${new Date(log.time).toLocaleString()}) <br/>IP: ${log.ip || 'Yok'}</div>`;
       });
     }
 
-    db.ref("logs").on("value", renderLogs);
+    function checkAdminPassword() {
+      const password = document.getElementById("admin-password").value;
+      if (password === "admin123") {
+        document.getElementById("admin-panel").style.display = "block";
+        document.getElementById("admin-login").style.display = "none";
+        db.ref("logs").on("value", renderLogs);
+      } else {
+        alert("Hatalı şifre!");
+      }
+    }
 
     function onScanSuccess(decodedText, decodedResult) {
       toggleMachineStatus(decodedText);
