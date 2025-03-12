@@ -1,54 +1,111 @@
 
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hash Kodu Nedir? - LaundryWatch</title>
+  <title>LaundryWatch</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 40px; line-height: 1.7; }
-    .container { background: white; padding: 30px; border-radius: 10px; max-width: 800px; margin: auto; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
-    h1 { color: #333; }
-    code { background-color: #eee; padding: 2px 6px; border-radius: 4px; font-size: 0.95em; }
-    .highlight { background-color: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba; margin-top: 20px; }
+    body { font-family: sans-serif; background-color: #f8f9fa; padding: 20px; }
+    .notice { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .card { padding: 10px; border-radius: 8px; color: white; font-weight: bold; }
+    .available { background-color: #28a745; }
+    .in_use { background-color: #dc3545; }
+    #reader { margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🔐 Hash Kodu Nedir?</h1>
-    <p><strong>Hash Kodu</strong>, LaundryWatch sisteminde ekstra bir güvenlik katmanıdır.</p>
-    <p>Öğrenciler sisteme giriş yaparken sadece öğrenci numarası ve şifre yeterli değildir. <strong>Ek olarak "Hash Kodu"</strong> girilmesi istenir.</p>
+  <h2>LaundryWatch</h2>
+  <div class="notice">Lütfen öğrenci numarası, şifre ve hash kodu ile giriş yapın.</div>
+  <div id="reader"></div>
+  <div class="grid" id="machine-list"></div>
 
-    <div class="highlight">
-      <strong>Giriş Bilgileri:</strong><br>
-      - Öğrenci Numarası<br>
-      - Şifre<br>
-      - <mark>Hash Kodu</mark>
-    </div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDylInzc9Q1_V1NqZTt8fyLGeqOnwMT7tU",
+      authDomain: "laundry-a846e.firebaseapp.com",
+      databaseURL: "https://laundry-a846e-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "laundry-a846e",
+      storageBucket: "laundry-a846e.appspot.com",
+      messagingSenderId: "49043361685",
+      appId: "1:49043361685:web:d4d98f53d8fb51fd3f69c"
+    };
 
-    <h2>Hash Kodu Nerede Saklanır?</h2>
-    <p>Firebase Realtime Database'de şu alanda saklanır:</p>
-    <pre>
-settings
-└── access_hash : "123456"
-    </pre>
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    <h2>Hash Kodu Nasıl Değiştirilir?</h2>
-    <ol>
-      <li>Firebase Console → Realtime Database kısmına gir</li>
-      <li><code>settings</code> düğümünü aç</li>
-      <li><code>access_hash</code> alanına tıkla</li>
-      <li>Yeni bir kod gir, örneğin: <code>Efe2025</code></li>
-    </ol>
+    const studentPasswordList = {
+      "12345678": "sifre123",
+      "23456789": "abc456"
+    };
 
-    <h2>Örnek Giriş:</h2>
-    <ul>
-      <li>Öğrenci No: <code>12345678</code></li>
-      <li>Şifre: <code>sifre123</code></li>
-      <li>Hash: <code>123456</code> (bu değeri Firebase'den değiştirebilirsin)</li>
-    </ul>
+    let currentStudentNo = "";
+    let currentStudentIp = "";
 
-    <p>✅ Bu sistem sayesinde yetkisiz kullanıcıların giriş yapması engellenir.</p>
-  </div>
+    fetch("https://api.ipify.org?format=json")
+      .then(res => res.json())
+      .then(data => {
+        currentStudentIp = data.ip;
+      });
+
+    function startApp() {
+      db.ref("machines").on("value", (snapshot) => {
+        const machines = snapshot.val();
+        const container = document.getElementById("machine-list");
+        container.innerHTML = "";
+        for (let key in machines) {
+          const status = machines[key].status;
+          const card = document.createElement("div");
+          card.className = "card " + status;
+          card.innerText = key + " - " + status.replace("_", " ");
+          container.appendChild(card);
+        }
+      });
+
+      const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+      scanner.render(onScanSuccess);
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+      const machineId = decodedText;
+      const ref = db.ref("machines/" + machineId + "/status");
+      ref.once("value").then((snap) => {
+        const current = snap.val();
+        const newStatus = current === "available" ? "in_use" : "available";
+        ref.set(newStatus);
+
+        db.ref("logs").push({
+          machine: machineId,
+          action: newStatus,
+          student_no: currentStudentNo,
+          ip: currentStudentIp,
+          time: new Date().toISOString()
+        });
+      });
+      document.getElementById("reader").innerHTML = "<p>QR okutuldu. Kamera kapatıldı.</p>";
+    }
+
+    function login() {
+      const no = prompt("Öğrenci Numaranız:");
+      const sifre = prompt("Şifreniz:");
+      firebase.database().ref("settings/access_hash").once("value").then(snapshot => {
+        const correctHash = snapshot.val();
+        const girilenHash = prompt("Hash kodunu girin:");
+        if (studentPasswordList[no] === sifre && girilenHash === correctHash) {
+          currentStudentNo = no;
+          alert("Giriş başarılı!");
+          startApp();
+        } else {
+          alert("Giriş başarısız. Bilgileri kontrol edin.");
+        }
+      });
+    }
+
+    login();
+  </script>
 </body>
 </html>
