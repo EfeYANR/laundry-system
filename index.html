@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,6 +22,7 @@
     .status { font-weight: bold; margin-top: 0.5rem; }
     .footer { text-align: center; margin-top: 2rem; color: #666; font-size: 14px; }
     #reader { margin: 2rem auto; max-width: 400px; }
+    .notice { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 1rem; margin: 1rem auto; max-width: 500px; border-radius: 8px; text-align: center; }
   </style>
 </head>
 <body>
@@ -31,10 +31,15 @@
     <div>Last updated: <span id="timestamp"></span></div>
   </header>
   <div class="container">
+    <div class="notice">
+      📸 Bu sistemi kullanabilmeniz için tarayıcınız kameraya erişim izni istemektedir.<br>
+      Lütfen “Kameraya Erişime İzin Ver” seçeneğini onaylayın.<br>
+      Bu işlem yalnızca ilk kullanımda gereklidir.
+    </div>
     <div id="reader"></div>
     <div class="grid" id="machine-list"></div>
   </div>
-  <div class="footer">&copy; 2024 LaundryWatch. All rights reserved.</div>
+  <div class="footer">&copy; 2024 LaundryWatch. Version 2.2</div>
 
   <script>
     const firebaseConfig = {
@@ -84,7 +89,7 @@
     function onScanSuccess(decodedText, decodedResult) {
       toggleMachineStatus(decodedText);
       html5QrcodeScanner.clear(); // Kamera tarayıcıyı kapatır
-      document.getElementById("reader").innerHTML = "<p>QR scanned successfully. You may close this page.</p>";
+      document.getElementById("reader").innerHTML = "<p>QR başarıyla okundu. Sayfayı kapatabilirsiniz.</p>";
     }
 
     const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
