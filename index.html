@@ -79,6 +79,14 @@
 </thead>
 <tbody></tbody>
 </table>
+
+<h3>🔐 Yönetici Şifresini Değiştir</h3>
+<div class="form-group">
+<input id="oldAdminPassword" placeholder="Mevcut Şifre" type="password"/>
+<input id="newAdminPassword" placeholder="Yeni Şifre" type="password"/>
+<input id="confirmAdminPassword" placeholder="Yeni Şifre (Tekrar)" type="password"/>
+<button onclick="changeAdminPassword()">Şifreyi Güncelle</button>
+</div>
 </div>
 <script>
   const firebaseConfig = {
@@ -179,7 +187,7 @@
 
 function adminLogin() {
   const password = prompt("Yönetici şifresi:");
-  if (password === "admin123") {
+  if (password === currentAdminPassword) {
     document.getElementById("admin-panel").style.display = "block";
     loadLogs();
     loadUsageStats();
@@ -303,6 +311,31 @@ function startQrScanner() {
   });
 }
 
+
+
+let currentAdminPassword = "admin123";
+
+function changeAdminPassword() {
+  const oldPass = document.getElementById("oldAdminPassword").value;
+  const newPass = document.getElementById("newAdminPassword").value;
+  const confirmPass = document.getElementById("confirmAdminPassword").value;
+  
+  if (oldPass !== currentAdminPassword) {
+    alert("Mevcut şifre hatalı!");
+    return;
+  }
+  if (newPass !== confirmPass) {
+    alert("Yeni şifreler uyuşmuyor!");
+    return;
+  }
+  if (!newPass) {
+    alert("Yeni şifre boş olamaz!");
+    return;
+  }
+
+  currentAdminPassword = newPass;
+  alert("Yönetici şifresi güncellendi!");
+}
 </script>
 <button id="admin-btn" onclick="adminLogin()" style="position: fixed; bottom: 20px; left: 20px; z-index: 999; background-color: #007bff; color: white; border: none; border-radius: 30px; padding: 10px 16px; font-size: 16px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" title="Yönetici Girişi">🔑 Yönetim Paneli</button></body>
 </html>
