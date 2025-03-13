@@ -37,7 +37,7 @@
 <div class="notice">📌 Giriş için öğrenci numaranızı ve şifrenizi giriniz. 7 günde 4 kullanım hakkı tanımlıdır.</div>
 <div id="reader"></div>
 <div class="grid" id="machine-list"></div>
-<button id="admin-btn" onclick="adminLogin()">Yönetici olarak giriş yap</button>
+<button id="qr-btn" onclick="startQrScanner()" style="margin-top: 15px; display: block; margin-left: auto; margin-right: auto; padding: 12px 24px; font-size: 16px; background-color: #28a745; border: none; border-radius: 6px; cursor: pointer;">📷 QR Kod Tara</button>
 <div id="admin-panel" style="display:none;">
 <h3>📋 İşlem Geçmişi (Son 100 Kayıt)</h3>
 <table id="log-table">
@@ -286,6 +286,23 @@ function filterStudentTable() {
   });
 }
 
+
+function startQrScanner() {
+  const html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (decodedText, decodedResult) => {
+      toggleMachineStatus(decodedText);
+      html5QrCode.stop();
+      document.getElementById("reader").innerHTML = "<p>QR okutuldu. Kamera kapatıldı.</p>";
+    },
+    (errorMessage) => {}
+  ).catch(err => {
+    document.getElementById("reader").innerHTML = "Kamera başlatılamadı.";
+  });
+}
+
 </script>
-</body>
+<button id="admin-btn" onclick="adminLogin()" style="position: fixed; bottom: 20px; left: 20px; z-index: 999; background-color: #007bff; color: white; border: none; border-radius: 30px; padding: 10px 16px; font-size: 16px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" title="Yönetici Girişi">🔑 Yönetim Paneli</button></body>
 </html>
