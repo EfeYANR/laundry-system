@@ -345,7 +345,7 @@
 </html>
 
 <script>
-    // Otomatik timeout kontrolü (her 5 dakikada bir)
+    // Otomatik timeout kontrolü (her 5 dakikada bir) [DEBUG ENABLED]
     setInterval(() => {
       const now = Date.now();
       db.ref("machines").once("value").then(snapshot => {
@@ -353,7 +353,8 @@
         for (let key in machines) {
           const status = machines[key].status;
           const lastChange = machines[key].last_status_change_time || now;
-          if (status === "in_use" && (now - lastChange > 1 * 60 * 1000)) {
+          console.log("Kontrol:", key, "status:", status, "lastChange:", lastChange, "elapsed:", (now - lastChange));
+          if (status === "in_use" && lastChange && (now - lastChange > 1 * 60 * 1000)) {
             db.ref("machines/" + key + "/status").set("timeout");
           }
         }
