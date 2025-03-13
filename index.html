@@ -285,6 +285,7 @@
         const current = snap.val();
         const newStatus = current === "available" ? "in_use" : "available";
         ref.set(newStatus);
+        db.ref("machines/" + machineId + "/last_status_change_time").set(Date.now());
         db.ref("logs").push({
           machine: machineId,
           action: newStatus,
@@ -342,3 +343,20 @@
 
 </body>
 </html>
+
+<script>
+    // Otomatik timeout kontrolü (her 5 dakikada bir)
+    setInterval(() => {
+      const now = Date.now();
+      db.ref("machines").once("value").then(snapshot => {
+        const machines = snapshot.val() || {};
+        for (let key in machines) {
+          const status = machines[key].status;
+          const lastChange = machines[key].last_status_change_time || now;
+          if (status === "in_use" && (now - lastChange > 1 * 60 * 1000)) {
+            db.ref("machines/" + key + "/status").set("timeout");
+          }
+        }
+      });
+    }, 5 * 60 * 1000); // 5 dakika
+</script>
